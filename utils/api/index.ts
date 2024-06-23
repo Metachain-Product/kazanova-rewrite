@@ -3,11 +3,15 @@ import { toast } from "react-toastify";
 import { ENDPOINTS } from "./network";
 import { AxiosRequestMethods } from "../../constants/network";
 import { IRequest } from "../../interfaces";
+import { isCSR } from "../../helpers";
 
 const PUBLIC_ENDPOINTS: IRequest[] = [ENDPOINTS.getNonce, ENDPOINTS.verifyNonce, ENDPOINTS.profile];
-
 const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_ENDPOINT,
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: isCSR ? `Bearer ${localStorage.getItem("jwt")}` : null,
+  },
 });
 
 export const request = ({
@@ -20,7 +24,7 @@ export const request = ({
   payload?: Record<string, any>;
 }) => axiosInstance[method](url, payload);
 
-const signOut = () => {
+const signOutLocally = () => {
   const toastId = "session-expired";
 
   localStorage.removeItem("jwt");
@@ -37,16 +41,14 @@ const signOut = () => {
 
 axiosInstance.interceptors.request.use(function onFulfilled(config) {
   config.headers["x-href"] = document.location.href;
+  const jwt = localStorage.getItem("jwt");
+  config.headers.Authorization = `Bearer ${jwt}`;
 
   if (PUBLIC_ENDPOINTS.map(({ url }) => url).includes(config.url || "")) {
     return { ...config };
   } else {
-    const jwt = localStorage.getItem("jwt");
-
-    if (jwt) {
-      config.headers.Authorization = `Bearer ${jwt}`;
-    } else {
-      signOut();
+    if (!jwt) {
+      signOutLocally();
     }
     return { ...config };
   }

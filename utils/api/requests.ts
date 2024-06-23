@@ -3,7 +3,6 @@ import { ENDPOINTS } from "./network";
 
 export const getNonce = async (): Promise<string> => {
   const res = await request(ENDPOINTS.getNonce);
-  console.log("m", res.data.data.message);
   return res.data.data.message;
 };
 

@@ -2,46 +2,46 @@ import { type ReactNode, useEffect, useState, useMemo, useRef } from "react";
 import { AppContext } from "./AppContext";
 import { useAccount } from "wagmi";
 import {
-  AuthenticationStatus,
   RainbowKitAuthenticationProvider,
   RainbowKitProvider,
   createAuthenticationAdapter,
   darkTheme,
 } from "@rainbow-me/rainbowkit";
 import { getNonce, getProfile, logout, verifyNonce } from "../utils/api/requests";
+import { AuthenticationStatus } from "../constants/enums";
 
 interface IProps {
   children: ReactNode;
 }
 
 export function AppContextProvider({ children }: IProps) {
-  const [authStatus, setAuthStatus] = useState<AuthenticationStatus>("loading");
+  const [authStatus, setAuthStatus] = useState<AuthenticationStatus>(AuthenticationStatus.LOADING);
 
   const { address, status: walletStatus } = useAccount();
 
   const fetchingStatusRef = useRef(false);
   const verifyingRef = useRef(false);
 
-  useEffect(() => {
-    if (walletStatus === "disconnected") {
-      setAuthStatus("unauthenticated");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [walletStatus]);
 
   useEffect(() => {
     const fetchStatus = async () => {
-      if (fetchingStatusRef.current || verifyingRef.current) return;
+      if (fetchingStatusRef.current || verifyingRef.current || walletStatus === "reconnecting")
+        return;
+
+      if (walletStatus === "disconnected") {
+        setAuthStatus(AuthenticationStatus.UNAUTHENTICATED);
+        return;
+      }
       fetchingStatusRef.current = true;
       try {
         const response = await getProfile();
         setAuthStatus(
           response.data.status && walletStatus === "connected"
-            ? "authenticated"
-            : "unauthenticated",
+            ? AuthenticationStatus.AUTHENTICATED
+            : AuthenticationStatus.UNAUTHENTICATED,
         );
       } catch (_error) {
-        setAuthStatus("unauthenticated");
+        setAuthStatus(AuthenticationStatus.UNAUTHENTICATED);
       } finally {
         fetchingStatusRef.current = false;
       }
@@ -55,7 +55,7 @@ export function AppContextProvider({ children }: IProps) {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, []);
+  }, [walletStatus]);
 
   const authAdapter = useMemo(() => {
     return createAuthenticationAdapter({
@@ -85,7 +85,11 @@ export function AppContextProvider({ children }: IProps) {
           const authenticated = response.status >= 200 && response.status < 300;
 
           if (authenticated) {
-            setAuthStatus(authenticated ? "authenticated" : "unauthenticated");
+            setAuthStatus(
+              authenticated
+                ? AuthenticationStatus.AUTHENTICATED
+                : AuthenticationStatus.UNAUTHENTICATED,
+            );
             localStorage.setItem("jwt", response.data.data.token);
           }
 
@@ -100,7 +104,7 @@ export function AppContextProvider({ children }: IProps) {
 
       signOut: async () => {
         await logout();
-        setAuthStatus("unauthenticated");
+        setAuthStatus(AuthenticationStatus.UNAUTHENTICATED);
         localStorage.removeItem("jwt");
       },
     });

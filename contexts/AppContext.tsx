@@ -1,15 +1,15 @@
-import { AuthenticationStatus } from "@rainbow-me/rainbowkit";
 import { createContext, useContext } from "react";
+import { AuthenticationStatus } from "../constants/enums";
 
 interface IAppContext {
   authStatus: AuthenticationStatus;
 }
 
 export const AppContext = createContext<IAppContext>({
-  authStatus: "loading",
+  authStatus: AuthenticationStatus.LOADING,
 });
 
-AppContext.displayName = "AcademyAppContext";
+AppContext.displayName = "AuthAppContext";
 
 
 export function useAppContext() {
