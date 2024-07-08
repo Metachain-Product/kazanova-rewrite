@@ -11,7 +11,7 @@ const nextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "frame-ancestors 'self' https://*.example.com https://example.com http://localhost:3000",
+              `frame-ancestors verify.walletconnect.org verify.walletconnect.com;`,
           },
         ],
       },
